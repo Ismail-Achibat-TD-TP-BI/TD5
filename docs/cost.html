@@ -28,6 +28,10 @@
   <p>A plain bar would show total cost but hide the transport/storage split; a pie per warehouse would show the split but make comparing warehouses to each other hard (comparing angles across three separate pies is a known weak reading task). A <strong>stacked bar</strong> shows both at once: bar height = total cost, segment size = which lever to pull.</p>
   <canvas id="stackedChart" height="280"></canvas>
 
+  <h2>Cost efficiency per warehouse (EUR/tonne — not total cost)</h2>
+  <p>The stacked bar above shows <em>total</em> cost, which mostly just reflects warehouse size — a warehouse serving more tonnes will almost always cost more in total, even if it's run efficiently. That hides a different, equally real question: independent of size, which warehouse is structurally the <em>most expensive per tonne</em> to run? A single ranked bar on a normalized metric (EUR/tonne) answers that directly — the same "ranking → bar chart" logic as the CO2 dashboard's top-routes chart, applied here to warehouses instead of routes.</p>
+  <canvas id="efficiencyChart" height="220"></canvas>
+
   <h2>Highest-cost individual routes (table, not a chart)</h2>
   <p>A manager negotiating a specific route needs the exact number, not a visual estimate — same reasoning this course used for every other "exact figures a person will act on" table (e.g. the offer table in Smart Internship Match).</p>
   <table id="topLinksTable"><thead><tr><th>City</th><th>Warehouse</th><th>Distance (km)</th><th>Transport cost (EUR/year)</th></tr></thead><tbody></tbody></table>
@@ -60,6 +64,23 @@ fetch('data/cost.json')
       options: {
         plugins: { title: { display: true, text: 'Total cost per warehouse, split by lever' } },
         scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: 'EUR / year' } } },
+      },
+    });
+
+    // Sorted worst (most expensive per tonne) first -- same "ranking" reading
+    // as the stacked bar's left-to-right size, so the two charts stay
+    // consistent in how "bad" reads on this page.
+    const byEfficiency = [...byWh].sort((a, b) => b.cost_eur_per_tonne - a.cost_eur_per_tonne);
+    new Chart(document.getElementById('efficiencyChart'), {
+      type: 'bar',
+      data: {
+        labels: byEfficiency.map(w => w.warehouse),
+        datasets: [{ label: 'Cost per tonne (EUR)', data: byEfficiency.map(w => w.cost_eur_per_tonne), backgroundColor: '#8b2ea0' }],
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false }, title: { display: true, text: 'Cost per tonne delivered, by warehouse (higher = structurally less efficient)' } },
+        scales: { x: { title: { display: true, text: 'EUR / tonne' } } },
       },
     });
 
